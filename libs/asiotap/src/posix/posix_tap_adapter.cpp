@@ -71,7 +71,7 @@ struct in6_ifreq
 	int ifr6_ifindex; /**< Interface index */
 };
 
-#elif defined(MACINTOSH) || defined(BSD)
+#elif defined(MACINTOSH) || defined(OS_BSD)
 
 /*
  * Note for Mac OS X users : you have to download and install the tun/tap driver from (http://tuntaposx.sourceforge.net).
@@ -286,6 +286,7 @@ namespace asiotap
 		if (!_name.empty())
 		{
 			strncpy(ifr.ifr_name, _name.c_str(), IFNAMSIZ);
+			ifr.ifr_name[IFNAMSIZ - 1] = 0x00;
 		}
 
 		// Set the parameters on the tun device.
@@ -307,6 +308,7 @@ namespace asiotap
 			struct ifreq netifr {};
 
 			std::strncpy(netifr.ifr_name, ifr.ifr_name, IFNAMSIZ);
+			netifr.ifr_name[IFNAMSIZ - 1] = 0x00;
 
 #if defined(IFF_ONE_QUEUE) && defined(SIOCSIFTXQLEN)
 
@@ -323,6 +325,7 @@ namespace asiotap
 			netifr = {};
 
 			std::strncpy(netifr.ifr_name, ifr.ifr_name, IFNAMSIZ);
+			netifr.ifr_name[IFNAMSIZ - 1] = 0x00;
 #endif
 
 			// Get the interface hwaddr
@@ -493,7 +496,7 @@ namespace asiotap
 			return;
 		}
 
-#if defined(MACINTOSH) || defined(BSD)
+#if defined(MACINTOSH) || defined(OS_BSD)
 		descriptor_handler socket = open_socket(AF_INET, ec);
 
 		if (!socket.valid())
@@ -504,6 +507,7 @@ namespace asiotap
 		struct ifreq ifr {};
 
 		strncpy(ifr.ifr_name, name().c_str(), IFNAMSIZ);
+		ifr.ifr_name[IFNAMSIZ - 1] = 0x00;
 
 		// Destroy the virtual tap device
 		if (ioctl(socket.native_handle(), SIOCIFDESTROY, &ifr) < 0)
@@ -522,6 +526,7 @@ namespace asiotap
 		struct ifreq netifr {};
 
 		strncpy(netifr.ifr_name, name().c_str(), IFNAMSIZ);
+		netifr.ifr_name[IFNAMSIZ - 1] = 0x00;
 
 		// Get the interface flags
 		if (::ioctl(socket.native_handle(), SIOCGIFFLAGS, static_cast<void*>(&netifr)) < 0)
@@ -667,6 +672,7 @@ namespace asiotap
 		struct ifreq netifr {};
 
 		strncpy(netifr.ifr_name, name().c_str(), IFNAMSIZ);
+		netifr.ifr_name[IFNAMSIZ - 1] = 0x00;
 
 		if (::ioctl(socket.native_handle(), SIOCGIFMTU, (void*)&netifr) >= 0)
 		{
@@ -685,6 +691,7 @@ namespace asiotap
 		struct ifreq netifr {};
 
 		strncpy(netifr.ifr_name, name().c_str(), IFNAMSIZ);
+		netifr.ifr_name[IFNAMSIZ - 1] = 0x00;
 
 		netifr.ifr_mtu = _mtu;
 
@@ -705,11 +712,12 @@ namespace asiotap
 
 		ifreq ifr_a {};
 
-		std::strncpy(ifr_a.ifr_name, name().c_str(), IFNAMSIZ - 1);
+		std::strncpy(ifr_a.ifr_name, name().c_str(), IFNAMSIZ);
+		ifr_a.ifr_name[IFNAMSIZ - 1] = 0x00;
 
 		sockaddr_in* ifr_a_addr = reinterpret_cast<sockaddr_in*>(&ifr_a.ifr_addr);
 		ifr_a_addr->sin_family = AF_INET;
-#ifdef BSD
+#ifdef OS_BSD
 		ifr_a_addr->sin_len = sizeof(sockaddr_in);
 #endif
 		std::memcpy(&ifr_a_addr->sin_addr.s_addr, address.to_bytes().data(), address.to_bytes().size());
@@ -730,10 +738,11 @@ namespace asiotap
 		{
 			ifreq ifr_n {};
 
-			std::strncpy(ifr_n.ifr_name, name().c_str(), IFNAMSIZ - 1);
+			std::strncpy(ifr_n.ifr_name, name().c_str(), IFNAMSIZ);
+			ifr_n.ifr_name[IFNAMSIZ - 1] = 0x00;
 			sockaddr_in* ifr_n_addr = reinterpret_cast<sockaddr_in*>(&ifr_n.ifr_addr);
 			ifr_n_addr->sin_family = AF_INET;
-#ifdef BSD
+#ifdef OS_BSD
 			ifr_n_addr->sin_len = sizeof(sockaddr_in);
 #endif
 			ifr_n_addr->sin_addr.s_addr = htonl((0xFFFFFFFF >> (32 - prefix_len)) << (32 - prefix_len));
@@ -775,7 +784,7 @@ namespace asiotap
 		ifr.ifr6_ifindex = if_index;
 
 		if (::ioctl(socket.native_handle(), SIOCSIFADDR, &ifr) < 0)
-#elif defined(MACINTOSH) || defined(BSD)
+#elif defined(MACINTOSH) || defined(OS_BSD)
 		in6_aliasreq iar {};
 		std::memcpy(iar.ifra_name, name().c_str(), name().length());
 		reinterpret_cast<sockaddr_in6*>(&iar.ifra_addr)->sin6_family = AF_INET6;
@@ -828,10 +837,11 @@ namespace asiotap
 
 		ifreq ifr_d {};
 
-		std::strncpy(ifr_d.ifr_name, name().c_str(), IFNAMSIZ - 1);
+		std::strncpy(ifr_d.ifr_name, name().c_str(), IFNAMSIZ);
+		ifr_d.ifr_name[IFNAMSIZ - 1] = 0x00;
 		sockaddr_in* ifr_dst_addr = reinterpret_cast<sockaddr_in*>(&ifr_d.ifr_dstaddr);
 		ifr_dst_addr->sin_family = AF_INET;
-#ifdef BSD
+#ifdef OS_BSD
 		ifr_dst_addr->sin_len = sizeof(sockaddr_in);
 #endif
 		std::memcpy(&ifr_dst_addr->sin_addr.s_addr, remote_address.to_bytes().data(), remote_address.to_bytes().size());

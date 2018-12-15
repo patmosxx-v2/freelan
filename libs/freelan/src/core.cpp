@@ -1777,7 +1777,8 @@ namespace freelan
 			{
 				m_logger(fscp::log_level::information) << "IPv4 address: " << m_configuration.tap_adapter.ipv4_address_prefix_length;
 
-				tap_config.ipv4.network_address = { m_configuration.tap_adapter.ipv4_address_prefix_length.address(), m_configuration.tap_adapter.ipv4_address_prefix_length.prefix_length() };
+				asiotap::ipv4_network_address address = { m_configuration.tap_adapter.ipv4_address_prefix_length.address(), m_configuration.tap_adapter.ipv4_address_prefix_length.prefix_length() };
+				tap_config.ipv4.network_address = address;
 			}
 			else
 			{
@@ -1789,7 +1790,8 @@ namespace freelan
 			{
 				m_logger(fscp::log_level::information) << "IPv6 address: " << m_configuration.tap_adapter.ipv6_address_prefix_length;
 
-				tap_config.ipv6.network_address = { m_configuration.tap_adapter.ipv6_address_prefix_length.address(), m_configuration.tap_adapter.ipv6_address_prefix_length.prefix_length() };
+				asiotap::ipv6_network_address address = { m_configuration.tap_adapter.ipv6_address_prefix_length.address(), m_configuration.tap_adapter.ipv6_address_prefix_length.prefix_length() };
+				tap_config.ipv6.network_address = address;
 			}
 			else
 			{
@@ -2052,16 +2054,21 @@ namespace freelan
 			return result;
 		}();
 
+		// disable buffer recycling from now (possible issue with SharedBuffer
+		// which references itself due to lambda capture)
 		m_tap_adapter->async_read(
 			buffer(receive_buffer),
 			boost::bind(
 				&core::do_handle_tap_adapter_read,
 				this,
+				/*
 				SharedBuffer(receive_buffer, [this](const SharedBuffer& buffer) {
 					m_tap_adapter_io_service.post([this, buffer] () {
 						m_tap_adapter_buffers.push_back(buffer);
 					});
 				}),
+				*/
+				receive_buffer,
 				boost::asio::placeholders::error,
 				boost::asio::placeholders::bytes_transferred
 			)
@@ -2728,14 +2735,14 @@ namespace freelan
 				{
 					std::ostringstream oss;
 
-					for (auto&& endpoint : public_endpoints)
+					for (auto&& ep : public_endpoints)
 					{
 						if (!oss.str().empty())
 						{
 							oss << ", ";
 						}
 
-						oss << endpoint;
+						oss << ep;
 					}
 
 					m_logger(fscp::log_level::information) << "Setting contact information on the web server with " << public_endpoints.size() << " public endpoint(s) (" << oss.str() << ")...";
@@ -2767,14 +2774,14 @@ namespace freelan
 						{
 							std::ostringstream oss;
 
-							for (auto&& endpoint : accepted_endpoints)
+							for (auto&& ep : accepted_endpoints)
 							{
 								if (!oss.str().empty())
 								{
 									oss << ", ";
 								}
 
-								oss << endpoint;
+								oss << ep;
 							}
 
 							m_logger(fscp::log_level::information) << "Server will advertise the following endpoints: " << oss.str();
@@ -2784,14 +2791,14 @@ namespace freelan
 						{
 							std::ostringstream oss;
 
-							for (auto&& endpoint : rejected_endpoints)
+							for (auto&& ep : rejected_endpoints)
 							{
 								if (!oss.str().empty())
 								{
 									oss << ", ";
 								}
 
-								oss << endpoint;
+								oss << ep;
 							}
 
 							m_logger(fscp::log_level::warning) << "Server refused to advertise the following endpoints: " << oss.str();
@@ -2863,16 +2870,16 @@ namespace freelan
 							{
 								std::ostringstream oss;
 
-								for (auto&& endpoint : contact.second)
+								for (auto&& ep : contact.second)
 								{
-									async_contact(endpoint);
+									async_contact(ep);
 
 									if (!oss.str().empty())
 									{
 										oss << ", ";
 									}
 
-									oss << endpoint;
+									oss << ep;
 								}
 
 								m_logger(fscp::log_level::information) << "Contact information for " << contact.first << ": " << oss.str();
